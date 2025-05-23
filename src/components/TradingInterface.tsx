@@ -70,7 +70,13 @@ const TradingInterface = () => {
         }
       });
       
-      console.log(`Autonomous buy: ${cryptoAmount.toFixed(6)} ${symbol} for $${amount}`);
+      console.log(`AI Autonomous buy: ${cryptoAmount.toFixed(6)} ${symbol} for $${amount.toFixed(2)}`);
+      
+      toast({
+        title: 'AI Trade Executed',
+        description: `Bought ${cryptoAmount.toFixed(6)} ${symbol} for $${amount.toFixed(2)}`,
+      });
+      
     } else {
       const sellValue = amount * crypto.price;
       setPortfolio(prev => 
@@ -81,7 +87,12 @@ const TradingInterface = () => {
         ).filter(p => p.amount > 0.000001)
       );
       
-      console.log(`Autonomous sell: ${amount.toFixed(6)} ${symbol} for $${sellValue.toFixed(2)}`);
+      console.log(`AI Autonomous sell: ${amount.toFixed(6)} ${symbol} for $${sellValue.toFixed(2)}`);
+      
+      toast({
+        title: 'AI Trade Executed',
+        description: `Sold ${amount.toFixed(6)} ${symbol} for $${sellValue.toFixed(2)}`,
+      });
     }
   };
 
@@ -123,16 +134,16 @@ const TradingInterface = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold trading-gradient bg-clip-text text-transparent">
-            CryptoTrader Pro
+            AI CryptoTrader Pro
           </h1>
           <p className="text-sm opacity-60">
-            {currentTime.toLocaleString()}
+            {currentTime.toLocaleString()} • Powered by Machine Learning
           </p>
         </div>
         <div className="flex items-center space-x-4">
           <Badge variant="outline" className="border-green-500 text-green-500">
             <Activity className="w-3 h-3 mr-1" />
-            Market Open
+            AI Active
           </Badge>
         </div>
       </div>
@@ -239,7 +250,7 @@ const TradingInterface = () => {
               <div>
                 <h3 className="text-sm opacity-60 mb-2">Market Status</h3>
                 <Badge className="bg-green-500/20 text-green-400 border-green-500">
-                  Active Trading
+                  AI Trading Active
                 </Badge>
               </div>
             </div>
@@ -247,16 +258,23 @@ const TradingInterface = () => {
 
           {/* Trading Panel */}
           <Card className="trading-card p-6">
-            <Tabs defaultValue="manual" className="w-full">
+            <Tabs defaultValue="autonomous" className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+                <TabsTrigger value="autonomous" className="data-[state=active]:bg-gray-700">
+                  AI Autonomous Trading
+                </TabsTrigger>
                 <TabsTrigger value="manual" className="data-[state=active]:bg-gray-700">
                   Manual Trading
                 </TabsTrigger>
-                <TabsTrigger value="autonomous" className="data-[state=active]:bg-gray-700">
-                  Autonomous Trading
-                </TabsTrigger>
               </TabsList>
               
+              <TabsContent value="autonomous" className="mt-6">
+                <AutoTradingEngine 
+                  cryptoList={cryptoList}
+                  onTrade={handleAutonomousTrade}
+                />
+              </TabsContent>
+
               <TabsContent value="manual" className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Buy Section */}
@@ -327,13 +345,6 @@ const TradingInterface = () => {
                     </div>
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="autonomous" className="mt-6">
-                <AutoTradingEngine 
-                  cryptoList={cryptoList}
-                  onTrade={handleAutonomousTrade}
-                />
               </TabsContent>
             </Tabs>
           </Card>
