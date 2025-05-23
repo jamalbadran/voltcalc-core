@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, Wallet, Activity } from 'lucide-react';
+import AutoTradingEngine from './AutoTradingEngine';
+import { useToast } from '@/hooks/use-toast';
 
 interface CryptoCurrency {
   symbol: string;
@@ -16,6 +17,7 @@ interface CryptoCurrency {
 }
 
 const TradingInterface = () => {
+  const { toast } = useToast();
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency>({
     symbol: 'BTC',
     name: 'Bitcoin',
@@ -26,7 +28,7 @@ const TradingInterface = () => {
 
   const [buyAmount, setBuyAmount] = useState('');
   const [sellAmount, setSellAmount] = useState('');
-  const [portfolio] = useState([
+  const [portfolio, setPortfolio] = useState([
     { symbol: 'BTC', amount: 0.5, value: 21625.40 },
     { symbol: 'ETH', amount: 5.2, value: 13520.00 },
     { symbol: 'ADA', amount: 1000, value: 650.00 }
@@ -48,6 +50,40 @@ const TradingInterface = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  const handleAutonomousTrade = (action: 'buy' | 'sell', symbol: string, amount: number) => {
+    const crypto = cryptoList.find(c => c.symbol === symbol);
+    if (!crypto) return;
+
+    if (action === 'buy') {
+      const cryptoAmount = amount / crypto.price;
+      setPortfolio(prev => {
+        const existing = prev.find(p => p.symbol === symbol);
+        if (existing) {
+          return prev.map(p => 
+            p.symbol === symbol 
+              ? { ...p, amount: p.amount + cryptoAmount, value: p.value + amount }
+              : p
+          );
+        } else {
+          return [...prev, { symbol, amount: cryptoAmount, value: amount }];
+        }
+      });
+      
+      console.log(`Autonomous buy: ${cryptoAmount.toFixed(6)} ${symbol} for $${amount}`);
+    } else {
+      const sellValue = amount * crypto.price;
+      setPortfolio(prev => 
+        prev.map(p => 
+          p.symbol === symbol 
+            ? { ...p, amount: Math.max(0, p.amount - amount), value: Math.max(0, p.value - sellValue) }
+            : p
+        ).filter(p => p.amount > 0.000001)
+      );
+      
+      console.log(`Autonomous sell: ${amount.toFixed(6)} ${symbol} for $${sellValue.toFixed(2)}`);
+    }
+  };
 
   const handleBuy = () => {
     if (buyAmount) {
@@ -104,6 +140,7 @@ const TradingInterface = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Market Overview */}
         <div className="lg:col-span-1 space-y-4">
+          {/* Markets card */}
           <Card className="trading-card p-4">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <DollarSign className="w-5 h-5 mr-2 text-yellow-500" />
@@ -153,7 +190,7 @@ const TradingInterface = () => {
                 <div key={holding.symbol} className="flex justify-between items-center">
                   <div>
                     <div className="font-medium">{holding.symbol}</div>
-                    <div className="text-xs opacity-60">{holding.amount}</div>
+                    <div className="text-xs opacity-60">{holding.amount.toFixed(6)}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-medium">{formatCurrency(holding.value)}</div>
@@ -210,14 +247,17 @@ const TradingInterface = () => {
 
           {/* Trading Panel */}
           <Card className="trading-card p-6">
-            <Tabs defaultValue="spot" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 bg-gray-800">
-                <TabsTrigger value="spot" className="data-[state=active]:bg-gray-700">
-                  Spot Trading
+            <Tabs defaultValue="manual" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-gray-800">
+                <TabsTrigger value="manual" className="data-[state=active]:bg-gray-700">
+                  Manual Trading
+                </TabsTrigger>
+                <TabsTrigger value="autonomous" className="data-[state=active]:bg-gray-700">
+                  Autonomous Trading
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="spot" className="mt-6">
+              <TabsContent value="manual" className="mt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Buy Section */}
                   <div className="space-y-4">
@@ -287,6 +327,13 @@ const TradingInterface = () => {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="autonomous" className="mt-6">
+                <AutoTradingEngine 
+                  cryptoList={cryptoList}
+                  onTrade={handleAutonomousTrade}
+                />
               </TabsContent>
             </Tabs>
           </Card>
