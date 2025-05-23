@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -35,20 +36,23 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Trading specific colors */
+    --trading-bg: 13 12% 9%;
+    --trading-card: 13 12% 12%;
+    --trading-border: 13 12% 18%;
+    --trading-text: 0 0% 95%;
+    --trading-muted: 0 0% 60%;
+    --trading-green: 120 100% 40%;
+    --trading-red: 0 100% 50%;
+    --trading-accent: 45 100% 50%;
   }
 
   .dark {
@@ -97,5 +101,24 @@
 
   body {
     @apply bg-background text-foreground;
+    background: hsl(var(--trading-bg));
+    color: hsl(var(--trading-text));
   }
+}
+
+.trading-card {
+  background: hsl(var(--trading-card));
+  border: 1px solid hsl(var(--trading-border));
+}
+
+.price-up {
+  color: hsl(var(--trading-green));
+}
+
+.price-down {
+  color: hsl(var(--trading-red));
+}
+
+.trading-gradient {
+  background: linear-gradient(135deg, hsl(var(--trading-accent)) 0%, hsl(var(--trading-green)) 100%);
 }
