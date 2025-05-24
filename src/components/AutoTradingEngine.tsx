@@ -6,8 +6,13 @@ import TradingPerformanceAnalyzer from './TradingPerformanceAnalyzer';
 import TradingBotCard from './TradingBotCard';
 import CreateBotForm from './CreateBotForm';
 import TotalProfitCard from './TotalProfitCard';
+import RiskManager from './RiskManager';
+import BacktestingEngine from './BacktestingEngine';
+import StrategyTemplates from './StrategyTemplates';
+import PaperTradingMode from './PaperTradingMode';
 import { useTradingHistory } from '@/hooks/useTradingHistory';
 import { TradingBot, AutoTradingEngineProps } from '@/types/trading';
+import { TechnicalIndicators } from '@/utils/technicalIndicators';
 
 interface LearningInsight {
   id: string;
@@ -15,13 +20,14 @@ interface LearningInsight {
   insight: string;
   confidence: number;
   appliedAt: Date;
-  effectivenesScore?: number;
+  effectivenessScore?: number;
 }
 
 const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
   const { toast } = useToast();
   const { tradeHistory, addTrade, getTotalProfit } = useTradingHistory();
   const [learningInsights, setLearningInsights] = useState<LearningInsight[]>([]);
+  const [isPaperMode, setIsPaperMode] = useState(true);
   
   const [bots, setBots] = useState<TradingBot[]>([
     {
@@ -52,43 +58,57 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
     }
   ]);
 
-  // Enhanced autonomous trading logic with self-improvement
+  // Enhanced autonomous trading logic with technical indicators
   useEffect(() => {
     const interval = setInterval(() => {
       bots.forEach(bot => {
         if (bot.isActive) {
           const crypto = cryptoList.find(c => c.symbol === bot.symbol);
           if (crypto) {
-            executeAdaptiveTrading(bot, crypto);
+            executeAdvancedTrading(bot, crypto);
           }
         }
       });
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [bots, cryptoList, learningInsights]);
+  }, [bots, cryptoList, learningInsights, isPaperMode]);
 
-  const executeAdaptiveTrading = (bot: TradingBot, crypto: any) => {
+  const executeAdvancedTrading = (bot: TradingBot, crypto: any) => {
     const { change24h, price } = crypto;
+    
+    // Generate price history for technical analysis (simulated)
+    const priceHistory = generatePriceHistory(crypto);
+    const technicalSignals = TechnicalIndicators.generateTradingSignals(priceHistory);
     
     // Apply learning insights to modify trading behavior
     const adaptedThresholds = applyLearningInsights(bot, { change24h, price });
     
-    // Enhanced strategy with market condition detection
+    // Enhanced strategy with market condition detection and technical indicators
     const marketCondition = detectMarketCondition(change24h);
     const volatility = Math.abs(change24h) / 100;
     
+    // Combine technical signals with price action
+    const shouldConsiderBuy = change24h <= adaptedThresholds.buyThreshold && 
+                             (technicalSignals.overall === 'buy' || technicalSignals.confidence > 0.7);
+    const shouldConsiderSell = change24h >= adaptedThresholds.sellThreshold && 
+                              (technicalSignals.overall === 'sell' || technicalSignals.confidence > 0.7);
+    
     const volatilityMultiplier = volatility > 0.05 ? 0.7 : 1.2;
-    const adjustedBuyThreshold = adaptedThresholds.buyThreshold * volatilityMultiplier;
-    const adjustedSellThreshold = adaptedThresholds.sellThreshold * volatilityMultiplier;
     
     if (bot.strategy.includes('ai_')) {
-      if (change24h <= adjustedBuyThreshold) {
+      if (shouldConsiderBuy) {
         const riskFactor = Math.min(Math.abs(change24h) / 10, 0.6);
         const learningMultiplier = getLearningMultiplier(bot.id, 'buy');
-        const amount = bot.maxAmount * (0.03 + riskFactor) * learningMultiplier;
+        const technicalMultiplier = technicalSignals.confidence;
+        const amount = bot.maxAmount * (0.03 + riskFactor) * learningMultiplier * technicalMultiplier;
         
-        onTrade('buy', bot.symbol, amount);
+        // Use paper trading if enabled
+        if (isPaperMode) {
+          (window as any).executePaperTrade?.('buy', bot.symbol, amount);
+        } else {
+          onTrade('buy', bot.symbol, amount);
+        }
         
         addTrade({
           botId: bot.id,
@@ -103,17 +123,23 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
         updateBotStats(bot.id, 'buy', amount, price);
         
         toast({
-          title: `${bot.name} - Adaptive AI Buy`,
-          description: `Smart buy: $${amount.toFixed(2)} of ${bot.symbol} (${change24h.toFixed(2)}% change, ${marketCondition} market)`,
+          title: `${bot.name} - AI Enhanced Buy`,
+          description: `${isPaperMode ? 'Paper' : 'Live'} buy: $${amount.toFixed(2)} of ${bot.symbol} (Tech: ${technicalSignals.overall}, Conf: ${(technicalSignals.confidence * 100).toFixed(0)}%)`,
         });
         
-      } else if (change24h >= adjustedSellThreshold) {
+      } else if (shouldConsiderSell) {
         const profitFactor = Math.min(change24h / 10, 0.4);
         const learningMultiplier = getLearningMultiplier(bot.id, 'sell');
-        const amount = bot.maxAmount * (0.03 + profitFactor) * learningMultiplier;
+        const technicalMultiplier = technicalSignals.confidence;
+        const amount = bot.maxAmount * (0.03 + profitFactor) * learningMultiplier * technicalMultiplier;
         const sellAmount = amount / price;
         
-        onTrade('sell', bot.symbol, sellAmount);
+        // Use paper trading if enabled
+        if (isPaperMode) {
+          (window as any).executePaperTrade?.('sell', bot.symbol, sellAmount);
+        } else {
+          onTrade('sell', bot.symbol, sellAmount);
+        }
         
         const estimatedProfit = amount * 0.025 * (1 + profitFactor);
         
@@ -131,11 +157,31 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
         updateBotStats(bot.id, 'sell', amount, price, estimatedProfit);
         
         toast({
-          title: `${bot.name} - Adaptive AI Sell`,
-          description: `Smart sell: ${sellAmount.toFixed(6)} ${bot.symbol} for $${estimatedProfit.toFixed(2)} profit (${marketCondition} market)`,
+          title: `${bot.name} - AI Enhanced Sell`,
+          description: `${isPaperMode ? 'Paper' : 'Live'} sell: ${sellAmount.toFixed(6)} ${bot.symbol} (Tech: ${technicalSignals.overall})`,
         });
       }
     }
+  };
+
+  const generatePriceHistory = (crypto: any) => {
+    // Simulate price history for technical analysis
+    const history = [];
+    let basePrice = crypto.price;
+    
+    for (let i = 50; i >= 0; i--) {
+      const timeAgo = new Date(Date.now() - i * 3600000); // hourly data
+      const volatility = Math.random() * 0.02 - 0.01;
+      basePrice = basePrice * (1 + volatility);
+      
+      history.push({
+        price: basePrice,
+        timestamp: timeAgo,
+        volume: Math.random() * 1000000
+      });
+    }
+    
+    return history;
   };
 
   const applyLearningInsights = (bot: TradingBot, marketData: { change24h: number; price: number }) => {
@@ -146,18 +192,15 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
     botInsights.forEach(insight => {
       if (insight.confidence > 0.7) {
         if (insight.insight.includes('losing streak')) {
-          // Be more conservative
           adjustedBuyThreshold *= 1.3;
           adjustedSellThreshold *= 0.8;
         } else if (insight.insight.includes('High volatility')) {
-          // Widen margins
           adjustedBuyThreshold *= 1.2;
           adjustedSellThreshold *= 1.2;
         } else if (insight.insight.includes('profitable trading during')) {
           const currentHour = new Date().getHours();
           const profitableHours = extractHoursFromInsight(insight.insight);
           if (profitableHours.includes(currentHour)) {
-            // Be more aggressive during profitable hours
             adjustedBuyThreshold *= 0.9;
             adjustedSellThreshold *= 0.9;
           }
@@ -179,13 +222,13 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
       .filter(insight => insight.botId === botId)
       .filter(insight => {
         const daysSinceApplied = (Date.now() - insight.appliedAt.getTime()) / (1000 * 60 * 60 * 24);
-        return daysSinceApplied < 7; // Only recent insights
+        return daysSinceApplied < 7;
       });
 
-    const effectiveInsights = recentInsights.filter(insight => (insight.effectivenesScore || 0) > 0.6);
+    const effectiveInsights = recentInsights.filter(insight => (insight.effectivenessScore || 0) > 0.6);
     
     if (effectiveInsights.length > 0) {
-      return 1 + (effectiveInsights.length * 0.1); // Up to 20% boost for effective learning
+      return 1 + (effectiveInsights.length * 0.1);
     }
     
     return 1;
@@ -233,14 +276,12 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
   const handleLearningInsight = (botId: string, insight: LearningInsight) => {
     setLearningInsights(prev => {
       const updated = [...prev, insight];
-      // Keep only the last 50 insights to prevent memory issues
       return updated.slice(-50);
     });
 
-    // Calculate effectiveness of previous insights
     setTimeout(() => {
       evaluateInsightEffectiveness(insight);
-    }, 300000); // Evaluate after 5 minutes
+    }, 300000);
 
     toast({
       title: 'AI Learning Update',
@@ -257,7 +298,7 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
 
     if (botTrades.length >= 3) {
       const avgProfit = botTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0) / botTrades.length;
-      const effectivenessScore = Math.max(0, Math.min(1, (avgProfit + 10) / 20)); // Normalize to 0-1
+      const effectivenessScore = Math.max(0, Math.min(1, (avgProfit + 10) / 20));
 
       setLearningInsights(prev => prev.map(i => 
         i.id === insight.id ? { ...i, effectivenessScore } : i
@@ -289,9 +330,68 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
     });
   };
 
+  const handleApplyTemplate = (template: any) => {
+    const newBot: TradingBot = {
+      id: Date.now().toString(),
+      name: `${template.name} Bot`,
+      strategy: `ai_${template.type}`,
+      isActive: false,
+      profit: 0,
+      trades: 0,
+      symbol: 'BTC', // Default, can be changed
+      buyThreshold: template.buyThreshold,
+      sellThreshold: template.sellThreshold,
+      maxAmount: template.maxAmount,
+      learningEnabled: true
+    };
+    
+    createBot(newBot);
+  };
+
+  const handleRiskViolation = (botId: string, reason: string) => {
+    setBots(prev => prev.map(bot => 
+      bot.id === botId ? { ...bot, isActive: false } : bot
+    ));
+    
+    toast({
+      title: 'Risk Limit Violated',
+      description: `Bot ${botId} stopped: ${reason}`,
+      variant: 'destructive'
+    });
+  };
+
+  const handleStrategyOptimization = (optimizedStrategy: any) => {
+    toast({
+      title: 'Strategy Optimization Complete',
+      description: `New optimal parameters discovered through backtesting`,
+    });
+  };
+
+  const getTotalPortfolioValue = () => {
+    return cryptoList.reduce((total, crypto) => total + crypto.price, 0);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Enhanced AI Performance Analysis with Self-Learning */}
+      {/* Paper Trading Mode */}
+      <PaperTradingMode 
+        onModeChange={setIsPaperMode}
+        cryptoList={cryptoList}
+      />
+
+      {/* Risk Management */}
+      <RiskManager 
+        onRiskViolation={handleRiskViolation}
+        totalPortfolioValue={getTotalPortfolioValue()}
+      />
+
+      {/* Strategy Templates */}
+      <StrategyTemplates onApplyTemplate={handleApplyTemplate} />
+
+      {/* Backtesting Engine */}
+      <BacktestingEngine onStrategyOptimization={handleStrategyOptimization} />
+
+      {/* Enhanced AI Performance Analysis */}
       <TradingPerformanceAnalyzer 
         tradeHistory={tradeHistory}
         onStrategyUpdate={handleStrategyUpdate}
@@ -327,7 +427,7 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
       <Card className="trading-card p-6">
         <h3 className="text-xl font-semibold mb-4 flex items-center">
           <Bot className="w-5 h-5 mr-2 text-blue-500" />
-          Self-Learning AI Trading Bots
+          Advanced AI Trading Bots
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
