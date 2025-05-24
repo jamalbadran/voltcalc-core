@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 
 interface TradeRecord {
@@ -10,6 +9,8 @@ interface TradeRecord {
   price: number;
   timestamp: Date;
   profit?: number;
+  marketCondition?: 'bullish' | 'bearish' | 'neutral';
+  volatility?: number;
 }
 
 export const useTradingHistory = () => {
@@ -22,8 +23,17 @@ export const useTradingHistory = () => {
       timestamp: new Date()
     };
     
-    setTradeHistory(prev => [...prev, newTrade]);
-    console.log('Trade recorded:', newTrade);
+    setTradeHistory(prev => {
+      const updated = [...prev, newTrade];
+      // Keep only the last 1000 trades to prevent memory issues
+      return updated.slice(-1000);
+    });
+    
+    console.log('Enhanced trade recorded:', {
+      ...newTrade,
+      marketCondition: newTrade.marketCondition || 'neutral',
+      volatility: newTrade.volatility || 0
+    });
   }, []);
 
   const updateTradeProfit = useCallback((tradeId: string, profit: number) => {
@@ -40,11 +50,36 @@ export const useTradingHistory = () => {
     return tradeHistory.reduce((sum, trade) => sum + (trade.profit || 0), 0);
   }, [tradeHistory]);
 
+  const getMarketConditionStats = useCallback(() => {
+    const conditions = tradeHistory.reduce((acc, trade) => {
+      const condition = trade.marketCondition || 'neutral';
+      if (!acc[condition]) acc[condition] = { count: 0, totalProfit: 0 };
+      acc[condition].count++;
+      acc[condition].totalProfit += trade.profit || 0;
+      return acc;
+    }, {} as Record<string, { count: number; totalProfit: number }>);
+
+    return conditions;
+  }, [tradeHistory]);
+
+  const getVolatilityAnalysis = useCallback(() => {
+    const volatilityTrades = tradeHistory.filter(trade => trade.volatility !== undefined);
+    if (volatilityTrades.length === 0) return { avgVolatility: 0, highVolatilityProfit: 0 };
+
+    const avgVolatility = volatilityTrades.reduce((sum, trade) => sum + (trade.volatility || 0), 0) / volatilityTrades.length;
+    const highVolatilityTrades = volatilityTrades.filter(trade => (trade.volatility || 0) > avgVolatility);
+    const highVolatilityProfit = highVolatilityTrades.reduce((sum, trade) => sum + (trade.profit || 0), 0);
+
+    return { avgVolatility, highVolatilityProfit };
+  }, [tradeHistory]);
+
   return {
     tradeHistory,
     addTrade,
     updateTradeProfit,
     getTradesByBot,
-    getTotalProfit
+    getTotalProfit,
+    getMarketConditionStats,
+    getVolatilityAnalysis
   };
 };
