@@ -260,7 +260,7 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
       const effectivenessScore = Math.max(0, Math.min(1, (avgProfit + 10) / 20)); // Normalize to 0-1
 
       setLearningInsights(prev => prev.map(i => 
-        i.id === insight.id ? { ...i, effectivenesScore } : i
+        i.id === insight.id ? { ...i, effectivenessScore } : i
       ));
 
       console.log(`Insight effectiveness for ${insight.botId}: ${effectivenessScore.toFixed(2)}`);

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -320,7 +319,7 @@ const TradingPerformanceAnalyzer = ({ tradeHistory, onStrategyUpdate, onLearning
                   <h4 className="font-semibold flex items-center">
                     Bot {perf.botId}
                     {perf.adaptationScore > 0.6 && (
-                      <BookOpen className="w-3 h-3 ml-2 text-blue-400" title="Actively Learning" />
+                      <BookOpen className="w-3 h-3 ml-2 text-blue-400" />
                     )}
                   </h4>
                   <div className="flex items-center space-x-4 text-sm">
