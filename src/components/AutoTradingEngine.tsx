@@ -9,70 +9,61 @@ import StrategyTemplates from './StrategyTemplates';
 import PaperTradingMode from './PaperTradingMode';
 import LearningInsightsCard from './LearningInsightsCard';
 import BotManagementSection from './BotManagementSection';
+import AutonomousTradingControl from './AutonomousTradingControl';
 import { useTradingHistory } from '@/hooks/useTradingHistory';
-import { useAutonomousTrading } from '@/hooks/useAutonomousTrading';
-import { TradingBot, AutoTradingEngineProps } from '@/types/trading';
+import { useFullyAutonomousTrading } from '@/hooks/useFullyAutonomousTrading';
+import { AutoTradingEngineProps } from '@/types/trading';
 
 const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
   const { toast } = useToast();
   const { tradeHistory, getTotalProfit } = useTradingHistory();
   const [isPaperMode, setIsPaperMode] = useState(true);
   
-  const [bots, setBots] = useState<TradingBot[]>([
-    {
-      id: '1',
-      name: 'BTC AI Trader',
-      strategy: 'ai_momentum',
-      isActive: false,
-      profit: 0,
-      trades: 0,
-      symbol: 'BTC',
-      buyThreshold: -2.0,
-      sellThreshold: 3.0,
-      maxAmount: 1000,
-      learningEnabled: true
-    },
-    {
-      id: '2',
-      name: 'ETH Smart Bot',
-      strategy: 'ai_grid',
-      isActive: false,
-      profit: 0,
-      trades: 0,
-      symbol: 'ETH',
-      buyThreshold: -1.5,
-      sellThreshold: 2.5,
-      maxAmount: 500,
-      learningEnabled: true
-    }
-  ]);
-
-  const { learningInsights, handleLearningInsight } = useAutonomousTrading(
+  const {
     bots,
-    cryptoList,
-    onTrade,
-    isPaperMode,
-    setBots
-  );
+    setBots,
+    learningInsights,
+    autonomousMode,
+    toggleAutonomousMode,
+    handleLearningInsight
+  } = useFullyAutonomousTrading(cryptoList, onTrade, isPaperMode);
 
   const handleStrategyUpdate = (botId: string, strategy: { buyThreshold: number; sellThreshold: number }) => {
     setBots(prev => prev.map(bot => {
       if (bot.id === botId && bot.learningEnabled) {
-        toast({
-          title: 'AI Strategy Self-Optimized',
-          description: `${bot.name} learned from performance and adapted its strategy`,
-        });
-        return {
-          ...bot,
-          buyThreshold: strategy.buyThreshold,
-          sellThreshold: strategy.sellThreshold
-        };
+        if (autonomousMode) {
+          // In autonomous mode, just apply the update silently
+          return {
+            ...bot,
+            buyThreshold: strategy.buyThreshold,
+            sellThreshold: strategy.sellThreshold
+          };
+        } else {
+          toast({
+            title: 'AI Strategy Self-Optimized',
+            description: `${bot.name} learned from performance and adapted its strategy`,
+          });
+          return {
+            ...bot,
+            buyThreshold: strategy.buyThreshold,
+            sellThreshold: strategy.sellThreshold
+          };
+        }
       }
       return bot;
     }));
   };
 
   const toggleBot = (botId: string) => {
+    if (autonomousMode) {
+      toast({
+        title: 'Autonomous Mode Active',
+        description: 'Bots are managed automatically in autonomous mode',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setBots(prev => prev.map(bot => {
       if (bot.id === botId) {
         const newActive = !bot.isActive;
@@ -86,20 +77,20 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
     }));
   };
 
-  const createBot = (newBot: TradingBot) => {
-    setBots(prev => [...prev, newBot]);
+  const createBot = (newBot: any) => {
+    setBots(prev => [...prev, { ...newBot, isActive: autonomousMode }]);
     toast({
       title: 'New AI Trading Bot Created',
-      description: `${newBot.name} is ready to learn and trade`,
+      description: `${newBot.name} is ${autonomousMode ? 'automatically active' : 'ready to learn and trade'}`,
     });
   };
 
   const handleApplyTemplate = (template: any) => {
-    const newBot: TradingBot = {
+    const newBot = {
       id: Date.now().toString(),
       name: `${template.name} Bot`,
       strategy: `ai_${template.type}`,
-      isActive: false,
+      isActive: autonomousMode,
       profit: 0,
       trades: 0,
       symbol: 'BTC',
@@ -113,21 +104,24 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
   };
 
   const handleRiskViolation = (botId: string, reason: string) => {
-    setBots(prev => prev.map(bot => 
-      bot.id === botId ? { ...bot, isActive: false } : bot
-    ));
-    
-    toast({
-      title: 'Risk Limit Violated',
-      description: `Bot ${botId} stopped: ${reason}`,
-      variant: 'destructive'
-    });
+    if (!autonomousMode) {
+      setBots(prev => prev.map(bot => 
+        bot.id === botId ? { ...bot, isActive: false } : bot
+      ));
+      
+      toast({
+        title: 'Risk Limit Violated',
+        description: `Bot ${botId} stopped: ${reason}`,
+        variant: 'destructive'
+      });
+    }
+    // In autonomous mode, risk is managed automatically
   };
 
   const handleStrategyOptimization = (optimizedStrategy: any) => {
     toast({
       title: 'Strategy Optimization Complete',
-      description: `New optimal parameters discovered through backtesting`,
+      description: `New optimal parameters discovered through ${autonomousMode ? 'autonomous' : 'manual'} backtesting`,
     });
   };
 
@@ -135,8 +129,19 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
     return cryptoList.reduce((total, crypto) => total + crypto.price, 0);
   };
 
+  const activeBots = bots.filter(bot => bot.isActive).length;
+  const totalProfit = bots.reduce((sum, bot) => sum + bot.profit, 0);
+
   return (
     <div className="space-y-6">
+      <AutonomousTradingControl
+        autonomousMode={autonomousMode}
+        onToggleAutonomous={toggleAutonomousMode}
+        activeBots={activeBots}
+        totalProfit={totalProfit}
+        learningInsights={learningInsights.length}
+      />
+
       <PaperTradingMode 
         onModeChange={setIsPaperMode}
         cryptoList={cryptoList}
@@ -147,7 +152,9 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
         totalPortfolioValue={getTotalPortfolioValue()}
       />
 
-      <StrategyTemplates onApplyTemplate={handleApplyTemplate} />
+      {!autonomousMode && (
+        <StrategyTemplates onApplyTemplate={handleApplyTemplate} />
+      )}
 
       <BacktestingEngine onStrategyOptimization={handleStrategyOptimization} />
 
