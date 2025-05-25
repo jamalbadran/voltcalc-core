@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import Header from './trading/Header';
 import CryptoList from './trading/CryptoList';
 import PortfolioCard from './trading/PortfolioCard';
@@ -10,6 +10,7 @@ import { CryptoCurrency, PortfolioItem } from './trading/types';
 
 const TradingInterface = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency>({
     symbol: 'BTC',
     name: 'Bitcoin',
@@ -87,12 +88,16 @@ const TradingInterface = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 space-y-6">
+    <div className="min-h-screen p-2 md:p-4 space-y-4 md:space-y-6 pb-safe">
       <Header currentTime={currentTime} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className={`grid gap-4 md:gap-6 ${
+        isMobile 
+          ? 'grid-cols-1' 
+          : 'grid-cols-1 lg:grid-cols-4'
+      }`}>
         {/* Market Overview */}
-        <div className="lg:col-span-1 space-y-4">
+        <div className={`space-y-4 ${isMobile ? 'order-2' : 'lg:col-span-1'}`}>
           <CryptoList 
             cryptoList={cryptoList}
             selectedCrypto={selectedCrypto}
@@ -102,7 +107,7 @@ const TradingInterface = () => {
         </div>
 
         {/* Main Trading Area */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className={`space-y-4 md:space-y-6 ${isMobile ? 'order-1' : 'lg:col-span-3'}`}>
           <PriceDisplay selectedCrypto={selectedCrypto} />
           <TradingPanel 
             cryptoList={cryptoList}

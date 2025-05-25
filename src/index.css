@@ -104,6 +104,21 @@
     background: linear-gradient(135deg, hsl(var(--trading-bg)) 0%, hsl(220 20% 8%) 100%);
     color: hsl(var(--trading-text));
     min-height: 100vh;
+    /* Mobile optimizations */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  /* Mobile safe areas */
+  @supports (padding: max(0px)) {
+    .pb-safe {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    .pt-safe {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
   }
 }
 
@@ -123,6 +138,18 @@
   border-color: hsl(var(--trading-border) / 0.8);
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
+}
+
+/* Mobile-specific trading card optimizations */
+@media (max-width: 768px) {
+  .trading-card {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+  
+  .trading-card:hover {
+    transform: none;
+  }
 }
 
 .price-up {
@@ -184,4 +211,20 @@
 
 .glow-purple {
   box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+}
+
+/* Mobile touch optimizations */
+@media (max-width: 768px) {
+  button, .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .text-xs {
+    font-size: 0.8rem;
+  }
+  
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
 }
