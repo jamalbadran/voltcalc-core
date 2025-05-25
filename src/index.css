@@ -44,7 +44,7 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* Trading specific colors */
+    /* Enhanced trading specific colors */
     --trading-bg: 13 12% 9%;
     --trading-card: 13 12% 12%;
     --trading-border: 13 12% 18%;
@@ -101,24 +101,87 @@
 
   body {
     @apply bg-background text-foreground;
-    background: hsl(var(--trading-bg));
+    background: linear-gradient(135deg, hsl(var(--trading-bg)) 0%, hsl(220 20% 8%) 100%);
     color: hsl(var(--trading-text));
+    min-height: 100vh;
   }
 }
 
+/* Enhanced trading card styles */
 .trading-card {
-  background: hsl(var(--trading-card));
+  background: linear-gradient(135deg, 
+    hsl(var(--trading-card)) 0%, 
+    hsl(220 15% 10%) 50%, 
+    hsl(var(--trading-card)) 100%
+  );
   border: 1px solid hsl(var(--trading-border));
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.trading-card:hover {
+  border-color: hsl(var(--trading-border) / 0.8);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
 .price-up {
   color: hsl(var(--trading-green));
+  text-shadow: 0 0 10px hsla(var(--trading-green), 0.3);
 }
 
 .price-down {
   color: hsl(var(--trading-red));
+  text-shadow: 0 0 10px hsla(var(--trading-red), 0.3);
 }
 
 .trading-gradient {
   background: linear-gradient(135deg, hsl(var(--trading-accent)) 0%, hsl(var(--trading-green)) 100%);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Enhanced animations */
+@keyframes shimmer {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 5px currentColor; 
+    opacity: 1; 
+  }
+  50% { 
+    box-shadow: 0 0 20px currentColor; 
+    opacity: 0.8; 
+  }
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Glass morphism effect */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Enhanced glow effects */
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+}
+
+.glow-red {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.glow-purple {
+  box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
 }

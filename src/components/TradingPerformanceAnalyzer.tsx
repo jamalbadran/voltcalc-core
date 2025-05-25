@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Brain } from 'lucide-react';
+import { Brain, TrendingUp, Zap } from 'lucide-react';
 import { PerformanceAnalysis } from '@/utils/performanceAnalysis';
 import { LearningEngine } from '@/utils/learningEngine';
 import PerformanceMetrics from './PerformanceMetrics';
@@ -101,27 +101,56 @@ const TradingPerformanceAnalyzer = ({ tradeHistory, onStrategyUpdate, onLearning
   };
 
   return (
-    <Card className="trading-card p-6">
-      <h3 className="text-xl font-semibold mb-4 flex items-center">
-        <Brain className="w-5 h-5 mr-2 text-purple-500" />
-        AI Self-Learning Performance Analysis
-        <Badge variant="outline" className="ml-2 text-xs">
-          Cycle #{learningCycle}
-        </Badge>
-      </h3>
+    <div className="relative">
+      {/* Elegant background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-blue-900/10 to-indigo-900/20 rounded-xl blur-xl"></div>
       
-      {performances.length === 0 ? (
-        <p className="text-center opacity-60 py-8">
-          Collecting data... Need at least 4 trades per bot for analysis
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {performances.map(perf => (
-            <PerformanceMetrics key={perf.botId} performance={perf} />
-          ))}
+      <Card className="trading-card p-8 relative border border-purple-500/20 bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 shadow-lg">
+              <Brain className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                AI Self-Learning Performance
+              </h3>
+              <p className="text-sm text-gray-400">Advanced neural analysis and optimization</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-3">
+            <Badge variant="outline" className="border-purple-500/50 text-purple-300 bg-purple-500/10 px-3 py-1">
+              <Zap className="w-3 h-3 mr-1" />
+              Cycle #{learningCycle}
+            </Badge>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-400 font-medium">Learning Active</span>
+            </div>
+          </div>
         </div>
-      )}
-    </Card>
+        
+        {performances.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="p-4 rounded-full bg-gray-800/50 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+              <TrendingUp className="w-8 h-8 text-gray-500" />
+            </div>
+            <p className="text-gray-400 mb-2">Collecting neural data patterns...</p>
+            <p className="text-sm text-gray-500">Need at least 4 trades per bot for deep analysis</p>
+            <div className="w-32 h-1 bg-gray-700 rounded-full mx-auto mt-4 overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full animate-pulse w-1/3"></div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {performances.map(perf => (
+              <PerformanceMetrics key={perf.botId} performance={perf} />
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
   );
 };
 
