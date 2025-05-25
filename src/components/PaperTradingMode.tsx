@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { FileText, DollarSign, TrendingUp, AlertCircle } from 'lucide-react';
+import { FileText, DollarSign, TrendingUp, AlertCircle, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface PaperPortfolio {
@@ -33,12 +32,24 @@ interface PaperTradingModeProps {
 const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) => {
   const { toast } = useToast();
   const [isPaperMode, setIsPaperMode] = useState(true);
+  const [isLiveSimulation, setIsLiveSimulation] = useState(false);
   const [paperPortfolio, setPaperPortfolio] = useState<PaperPortfolio>({
     cash: 10000,
     positions: {},
     totalValue: 10000,
     totalPnL: 0
   });
+
+  // Auto-enable live simulation for autonomous trading
+  useEffect(() => {
+    if (isPaperMode && !isLiveSimulation) {
+      setIsLiveSimulation(true);
+      toast({
+        title: 'Live Simulation Started',
+        description: 'AI bots are now actively trading with virtual money',
+      });
+    }
+  }, [isPaperMode]);
 
   useEffect(() => {
     // Update portfolio values based on current prices
@@ -68,12 +79,41 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
     setIsPaperMode(enabled);
     onModeChange(enabled);
     
-    toast({
-      title: enabled ? 'Paper Trading Enabled' : 'Live Trading Enabled',
-      description: enabled ? 
-        'All trades will be simulated with virtual money' : 
-        'Warning: Real money will be used for trades',
-      variant: enabled ? 'default' : 'destructive'
+    if (enabled) {
+      setIsLiveSimulation(true);
+      toast({
+        title: 'Paper Trading Enabled',
+        description: 'Live simulation with virtual money activated',
+      });
+    } else {
+      setIsLiveSimulation(false);
+      toast({
+        title: 'Live Trading Enabled',
+        description: 'Warning: Real money will be used for trades',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const toggleLiveSimulation = () => {
+    if (!isPaperMode) {
+      toast({
+        title: 'Enable Paper Trading First',
+        description: 'Switch to paper trading mode to use live simulation',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsLiveSimulation(prev => {
+      const newState = !prev;
+      toast({
+        title: newState ? 'Live Simulation Started' : 'Live Simulation Paused',
+        description: newState ? 
+          'AI bots are now actively trading with virtual money' : 
+          'Virtual trading simulation paused',
+      });
+      return newState;
     });
   };
 
@@ -92,6 +132,8 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
   };
 
   const executePaperTrade = (action: 'buy' | 'sell', symbol: string, amount: number) => {
+    if (!isLiveSimulation) return;
+    
     const crypto = cryptoList.find(c => c.symbol === symbol);
     if (!crypto) return;
 
@@ -101,11 +143,13 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
       if (action === 'buy') {
         const cost = amount;
         if (cost > newPortfolio.cash) {
-          toast({
-            title: 'Insufficient Virtual Funds',
-            description: `Need $${cost.toFixed(2)}, have $${newPortfolio.cash.toFixed(2)}`,
-            variant: 'destructive'
-          });
+          if (isLiveSimulation) {
+            toast({
+              title: 'Virtual Trade Rejected',
+              description: `Insufficient funds: Need $${cost.toFixed(2)}, have $${newPortfolio.cash.toFixed(2)}`,
+              variant: 'destructive'
+            });
+          }
           return prev;
         }
         
@@ -127,15 +171,24 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
         position.amount = totalAmount;
         position.avgPrice = totalCost / totalAmount;
         position.value = totalAmount * crypto.price;
+
+        if (isLiveSimulation) {
+          toast({
+            title: 'Virtual Buy Executed',
+            description: `Bought ${cryptoAmount.toFixed(6)} ${symbol} for $${cost.toFixed(2)}`,
+          });
+        }
         
       } else { // sell
         const position = newPortfolio.positions[symbol];
         if (!position || position.amount < amount) {
-          toast({
-            title: 'Insufficient Virtual Position',
-            description: `Cannot sell ${amount.toFixed(6)} ${symbol}`,
-            variant: 'destructive'
-          });
+          if (isLiveSimulation) {
+            toast({
+              title: 'Virtual Trade Rejected',
+              description: `Insufficient ${symbol} to sell`,
+              variant: 'destructive'
+            });
+          }
           return prev;
         }
         
@@ -146,6 +199,13 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
         
         if (position.amount < 0.000001) {
           delete newPortfolio.positions[symbol];
+        }
+
+        if (isLiveSimulation) {
+          toast({
+            title: 'Virtual Sell Executed',
+            description: `Sold ${amount.toFixed(6)} ${symbol} for $${sellValue.toFixed(2)}`,
+          });
         }
       }
       
@@ -167,30 +227,59 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xl font-semibold flex items-center">
           <FileText className="w-5 h-5 mr-2 text-green-500" />
-          Paper Trading Mode
+          Live Trading Simulation
         </h3>
         
         <div className="flex items-center space-x-3">
-          <span className="text-sm opacity-60">Live Trading</span>
+          <span className="text-sm opacity-60">Real Money</span>
           <Switch
             checked={isPaperMode}
             onCheckedChange={handleModeToggle}
           />
-          <span className="text-sm opacity-60">Paper Trading</span>
+          <span className="text-sm opacity-60">Virtual Money</span>
         </div>
       </div>
       
       {isPaperMode && (
-        <div className="bg-green-900/20 border border-green-700 rounded-lg p-4 mb-4">
-          <div className="flex items-center mb-2">
-            <AlertCircle className="w-4 h-4 mr-2 text-green-400" />
-            <span className="text-sm font-medium text-green-400">
-              Paper Trading Active - No Real Money at Risk
-            </span>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Live Simulation Control</span>
+            <Button
+              variant={isLiveSimulation ? "destructive" : "default"}
+              size="sm"
+              onClick={toggleLiveSimulation}
+              className="flex items-center space-x-2"
+            >
+              <Play className="w-4 h-4" />
+              <span>{isLiveSimulation ? 'Pause Simulation' : 'Start Live Simulation'}</span>
+            </Button>
           </div>
-          <p className="text-xs opacity-80">
-            All trades are simulated with virtual money. Perfect for testing strategies without financial risk.
-          </p>
+          
+          {isLiveSimulation ? (
+            <div className="bg-green-900/20 border border-green-700 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                <span className="text-sm font-medium text-green-400">
+                  Live Simulation Active - AI Trading with Virtual Money
+                </span>
+              </div>
+              <p className="text-xs opacity-80">
+                Autonomous AI bots are actively trading in real-time using virtual funds. All trades are simulated with no financial risk.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-yellow-900/20 border border-yellow-700 rounded-lg p-4">
+              <div className="flex items-center mb-2">
+                <AlertCircle className="w-4 h-4 mr-2 text-yellow-400" />
+                <span className="text-sm font-medium text-yellow-400">
+                  Live Simulation Paused
+                </span>
+              </div>
+              <p className="text-xs opacity-80">
+                Click "Start Live Simulation" to begin autonomous AI trading with virtual money.
+              </p>
+            </div>
+          )}
         </div>
       )}
       
@@ -203,7 +292,7 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
             </span>
           </div>
           <p className="text-xs opacity-80">
-            Trades will use real money. Ensure you understand the risks before proceeding.
+            Trades will use real money. Switch to virtual money mode for safe testing.
           </p>
         </div>
       )}
@@ -212,31 +301,39 @@ const PaperTradingMode = ({ onModeChange, cryptoList }: PaperTradingModeProps) =
         <div className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-lg font-bold text-green-400">
+              <div className={`text-lg font-bold ${isLiveSimulation ? 'text-green-400' : 'text-gray-400'}`}>
                 ${paperPortfolio.totalValue.toFixed(2)}
               </div>
-              <div className="text-xs opacity-60">Total Portfolio Value</div>
+              <div className="text-xs opacity-60">Virtual Portfolio Value</div>
             </div>
             
             <div className="text-center">
-              <div className="text-lg font-bold">
+              <div className={`text-lg font-bold ${isLiveSimulation ? 'text-white' : 'text-gray-400'}`}>
                 ${paperPortfolio.cash.toFixed(2)}
               </div>
-              <div className="text-xs opacity-60">Available Cash</div>
+              <div className="text-xs opacity-60">Available Virtual Cash</div>
             </div>
             
             <div className="text-center">
-              <div className={`text-lg font-bold ${paperPortfolio.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className={`text-lg font-bold ${
+                paperPortfolio.totalPnL >= 0 ? 
+                (isLiveSimulation ? 'text-green-400' : 'text-gray-400') : 
+                (isLiveSimulation ? 'text-red-400' : 'text-gray-400')
+              }`}>
                 {paperPortfolio.totalPnL >= 0 ? '+' : ''}${paperPortfolio.totalPnL.toFixed(2)}
               </div>
-              <div className="text-xs opacity-60">Total P&L</div>
+              <div className="text-xs opacity-60">Virtual P&L</div>
             </div>
             
             <div className="text-center">
-              <div className={`text-lg font-bold ${paperPortfolio.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className={`text-lg font-bold ${
+                paperPortfolio.totalPnL >= 0 ? 
+                (isLiveSimulation ? 'text-green-400' : 'text-gray-400') : 
+                (isLiveSimulation ? 'text-red-400' : 'text-gray-400')
+              }`}>
                 {paperPortfolio.totalPnL >= 0 ? '+' : ''}{((paperPortfolio.totalPnL / 10000) * 100).toFixed(2)}%
               </div>
-              <div className="text-xs opacity-60">Return %</div>
+              <div className="text-xs opacity-60">Virtual Return %</div>
             </div>
           </div>
           

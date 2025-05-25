@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import TradingPerformanceAnalyzer from './TradingPerformanceAnalyzer';
@@ -27,6 +26,23 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
     toggleAutonomousMode,
     handleLearningInsight
   } = useFullyAutonomousTrading(cryptoList, onTrade, isPaperMode);
+
+  const handlePaperModeChange = (paperMode: boolean) => {
+    setIsPaperMode(paperMode);
+    
+    if (paperMode) {
+      toast({
+        title: 'Live Simulation Ready',
+        description: 'AI can now safely trade with virtual money in real-time',
+      });
+    } else {
+      toast({
+        title: 'Real Trading Mode',
+        description: 'Warning: AI will use real money for trades',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const handleStrategyUpdate = (botId: string, strategy: { buyThreshold: number; sellThreshold: number }) => {
     setBots(prev => prev.map(bot => {
@@ -143,7 +159,7 @@ const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
       />
 
       <PaperTradingMode 
-        onModeChange={setIsPaperMode}
+        onModeChange={handlePaperModeChange}
         cryptoList={cryptoList}
       />
 
