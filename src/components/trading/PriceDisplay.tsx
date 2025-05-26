@@ -1,7 +1,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wifi, WifiOff } from 'lucide-react';
 
 interface CryptoCurrency {
   symbol: string;
@@ -63,9 +63,15 @@ const PriceDisplay = ({ selectedCrypto }: PriceDisplayProps) => {
         </div>
         <div>
           <h3 className="text-sm opacity-60 mb-2">Market Status</h3>
-          <Badge className="bg-green-500/20 text-green-400 border-green-500">
-            AI Trading Active
-          </Badge>
+          <div className="space-y-2">
+            <Badge className="bg-green-500/20 text-green-400 border-green-500">
+              <Wifi className="w-3 h-3 mr-1" />
+              Live Binance Prices
+            </Badge>
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500">
+              AI Trading Active
+            </Badge>
+          </div>
         </div>
       </div>
     </Card>

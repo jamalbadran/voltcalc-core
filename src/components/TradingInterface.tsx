@@ -1,23 +1,21 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useBinancePrices } from '@/hooks/useBinancePrices';
 import Header from './trading/Header';
 import CryptoList from './trading/CryptoList';
 import PortfolioCard from './trading/PortfolioCard';
 import PriceDisplay from './trading/PriceDisplay';
 import TradingPanel from './trading/TradingPanel';
-import { CryptoCurrency, PortfolioItem } from './trading/types';
+import { PortfolioItem } from './trading/types';
 
 const TradingInterface = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency>({
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    price: 43250.80,
-    change24h: 2.45,
-    volume: 28500000000
-  });
+  const { cryptoList, isConnected } = useBinancePrices();
+
+  const [selectedCrypto, setSelectedCrypto] = useState(cryptoList[0]);
 
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([
     { symbol: 'BTC', amount: 0.5, value: 21625.40 },
@@ -25,15 +23,41 @@ const TradingInterface = () => {
     { symbol: 'ADA', amount: 1000, value: 650.00 }
   ]);
 
-  const cryptoList: CryptoCurrency[] = [
-    { symbol: 'BTC', name: 'Bitcoin', price: 43250.80, change24h: 2.45, volume: 28500000000 },
-    { symbol: 'ETH', name: 'Ethereum', price: 2600.50, change24h: -1.25, volume: 15200000000 },
-    { symbol: 'ADA', name: 'Cardano', price: 0.65, change24h: 5.80, volume: 1200000000 },
-    { symbol: 'SOL', name: 'Solana', price: 98.75, change24h: 3.20, volume: 2800000000 },
-    { symbol: 'DOT', name: 'Polkadot', price: 7.25, change24h: -0.85, volume: 850000000 }
-  ];
-
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Update selected crypto when crypto list changes
+  useEffect(() => {
+    if (cryptoList.length > 0) {
+      setSelectedCrypto(prev => {
+        const updated = cryptoList.find(c => c.symbol === prev.symbol);
+        return updated || cryptoList[0];
+      });
+    }
+  }, [cryptoList]);
+
+  // Update portfolio values based on live prices
+  useEffect(() => {
+    setPortfolio(prev => prev.map(item => {
+      const crypto = cryptoList.find(c => c.symbol === item.symbol);
+      if (crypto) {
+        return {
+          ...item,
+          value: item.amount * crypto.price
+        };
+      }
+      return item;
+    }));
+  }, [cryptoList]);
+
+  // Show connection status
+  useEffect(() => {
+    if (isConnected) {
+      toast({
+        title: 'Live Prices Connected',
+        description: 'Now showing real-time Binance prices',
+      });
+    }
+  }, [isConnected]);
 
   useEffect(() => {
     const timer = setInterval(() => {
