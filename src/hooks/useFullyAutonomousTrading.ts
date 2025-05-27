@@ -5,6 +5,7 @@ import { TechnicalIndicators } from '@/utils/technicalIndicators';
 import { useTradingHistory } from './useTradingHistory';
 import { PerformanceAnalysis } from '@/utils/performanceAnalysis';
 import { LearningEngine } from '@/utils/learningEngine';
+import { CryptoCurrency } from '@/components/trading/types';
 
 interface LearningInsight {
   id: string;
@@ -16,7 +17,7 @@ interface LearningInsight {
 }
 
 export const useFullyAutonomousTrading = (
-  cryptoList: Array<{ symbol: string; name: string; price: number; change24h: number }>,
+  cryptoList: CryptoCurrency[],
   onTrade: (action: 'buy' | 'sell', symbol: string, amount: number) => void,
   isPaperMode: boolean
 ) => {
@@ -132,7 +133,7 @@ export const useFullyAutonomousTrading = (
     return () => clearInterval(switchingInterval);
   }, [autonomousMode, bots, cryptoList]);
 
-  const createAutonomousAltcoinBot = (crypto: any) => {
+  const createAutonomousAltcoinBot = (crypto: CryptoCurrency) => {
     const strategies = ['ai_momentum', 'ai_scalping', 'ai_swing', 'ai_grid'];
     const randomStrategy = strategies[Math.floor(Math.random() * strategies.length)];
     
@@ -191,10 +192,9 @@ export const useFullyAutonomousTrading = (
     }
   };
 
-  const findBetterAltcoinOpportunity = (bot: TradingBot, currentCrypto: any) => {
+  const findBetterAltcoinOpportunity = (bot: TradingBot, currentCrypto: CryptoCurrency | undefined) => {
     if (!currentCrypto) return null;
 
-    // Look for altcoins with better trading opportunities
     const betterOptions = cryptoList.filter(crypto => {
       const volatilityScore = Math.abs(crypto.change24h);
       const currentVolatility = Math.abs(currentCrypto.change24h);
@@ -211,7 +211,7 @@ export const useFullyAutonomousTrading = (
       ) : null;
   };
 
-  const switchBotToAltcoin = (botId: string, newCrypto: any) => {
+  const switchBotToAltcoin = (botId: string, newCrypto: CryptoCurrency) => {
     setBots(prev => prev.map(bot => {
       if (bot.id === botId) {
         console.log(`🔄 ${bot.name} switching from ${bot.symbol} to ${newCrypto.symbol}`);
@@ -236,7 +236,7 @@ export const useFullyAutonomousTrading = (
     }
   };
 
-  const generatePriceHistory = (crypto: any) => {
+  const generatePriceHistory = (crypto: CryptoCurrency) => {
     const history = [];
     let basePrice = crypto.price;
     
@@ -321,7 +321,7 @@ export const useFullyAutonomousTrading = (
     });
   };
 
-  const executeTrade = (bot: TradingBot, action: 'buy' | 'sell', amount: number, price: number, crypto: any, marketCondition: any, volatility: number) => {
+  const executeTrade = (bot: TradingBot, action: 'buy' | 'sell', amount: number, price: number, crypto: CryptoCurrency, marketCondition: any, volatility: number) => {
     if (isPaperMode) {
       (window as any).executePaperTrade?.(action, bot.symbol, amount);
     } else {
@@ -418,7 +418,7 @@ export const useFullyAutonomousTrading = (
     }));
   };
 
-  const executeFullyAutonomousTrading = (bot: TradingBot, crypto: any) => {
+  const executeFullyAutonomousTrading = (bot: TradingBot, crypto: CryptoCurrency) => {
     const { change24h, price, volume } = crypto;
     
     const priceHistory = generatePriceHistory(crypto);
