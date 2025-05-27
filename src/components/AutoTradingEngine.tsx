@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import TradingPerformanceAnalyzer from './TradingPerformanceAnalyzer';
@@ -10,22 +11,61 @@ import LearningInsightsCard from './LearningInsightsCard';
 import BotManagementSection from './BotManagementSection';
 import AutonomousTradingControl from './AutonomousTradingControl';
 import { useTradingHistory } from '@/hooks/useTradingHistory';
-import { useFullyAutonomousTrading } from '@/hooks/useFullyAutonomousTrading';
+import { useBotManagement } from '@/hooks/useBotManagement';
+import { useAutonomousEngine } from '@/hooks/useAutonomousEngine';
+import { useLearningInsights } from '@/hooks/useLearningInsights';
 import { AutoTradingEngineProps } from '@/types/trading';
 
 const AutoTradingEngine = ({ cryptoList, onTrade }: AutoTradingEngineProps) => {
   const { toast } = useToast();
   const { tradeHistory, getTotalProfit } = useTradingHistory();
   const [isPaperMode, setIsPaperMode] = useState(true);
-  
+  const [autonomousMode, setAutonomousMode] = useState(false);
+
   const {
     bots,
     setBots,
+    switchBotToAltcoin,
+    updateBotStats
+  } = useBotManagement(cryptoList, autonomousMode, isPaperMode);
+
+  const {
     learningInsights,
+    handleLearningInsight,
+    applyLearningInsights
+  } = useLearningInsights(bots, setBots, autonomousMode);
+
+  useAutonomousEngine(
+    bots,
+    cryptoList,
     autonomousMode,
-    toggleAutonomousMode,
-    handleLearningInsight
-  } = useFullyAutonomousTrading(cryptoList, onTrade, isPaperMode);
+    isPaperMode,
+    onTrade,
+    updateBotStats,
+    switchBotToAltcoin,
+    applyLearningInsights
+  );
+
+  const toggleAutonomousMode = () => {
+    setAutonomousMode(prev => {
+      const newMode = !prev;
+      
+      if (newMode) {
+        setBots(prev => prev.map(bot => ({ ...bot, isActive: true })));
+        toast({
+          title: 'Autonomous Mode Activated',
+          description: 'AI is now fully managing all trading decisions',
+        });
+      } else {
+        toast({
+          title: 'Autonomous Mode Deactivated',
+          description: 'Manual control restored',
+        });
+      }
+      
+      return newMode;
+    });
+  };
 
   const handlePaperModeChange = (paperMode: boolean) => {
     setIsPaperMode(paperMode);
