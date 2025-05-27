@@ -19,6 +19,7 @@ export interface AutoTradingEngineProps {
     name: string;
     price: number;
     change24h: number;
+    volume: number;
   }>;
   onTrade: (action: 'buy' | 'sell', symbol: string, amount: number) => void;
 }
